@@ -65,6 +65,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     private boolean mIsComingFromRestoredState;
     private boolean mIgnoreTabletLayout;
     private boolean mIsTabletMode;
+    private boolean mIsActLikeTablet;
     private boolean mIsShy;
     private boolean mShyHeightAlreadyCalculated;
     private boolean mUseExtraOffset;
@@ -365,6 +366,15 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
      * @param position the position to select.
      */
     public void selectTabAtPosition(int position, boolean animate) {
+        selectTabAtPosition(position, animate, true);
+    }
+
+    /**
+     * Select a tab at the specified position.
+     *
+     * @param position the position to select.
+     */
+    public void selectTabAtPosition(int position, boolean animate, boolean notify) {
         if (mItems == null || mItems.length == 0) {
             throw new UnsupportedOperationException("Can't select tab at " +
                     "position " + position + ". This BottomBar has no items set yet.");
@@ -379,7 +389,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         unselectTab(oldTab, animate);
         selectTab(newTab, animate);
 
-        updateSelectedTab(position);
+        updateSelectedTab(position, notify);
         shiftingMagic(oldTab, newTab, false);
     }
 
@@ -882,7 +892,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
 
     private void initializeViews() {
         mIsTabletMode = !mIgnoreTabletLayout &&
-                mContext.getResources().getBoolean(R.bool.bb_bottom_bar_is_tablet_mode);
+                (mIsActLikeTablet || mContext.getResources().getBoolean(R.bool.bb_bottom_bar_is_tablet_mode));
         ViewCompat.setElevation(this, MiscUtils.dpToPixel(mContext, 8));
         View rootView = View.inflate(mContext, mIsTabletMode ?
                         R.layout.bb_bottom_bar_item_container_tablet : R.layout.bb_bottom_bar_item_container,
@@ -1019,6 +1029,8 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     }
 
     private void handleClick(View v) {
+        if(!isEnabled()) return;
+
         if (v.getTag().equals(TAG_BOTTOM_BAR_VIEW_INACTIVE)) {
             View oldTab = findViewWithTag(TAG_BOTTOM_BAR_VIEW_ACTIVE);
 
@@ -1053,8 +1065,12 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     }
 
     private void updateSelectedTab(int newPosition) {
-        final boolean notifyMenuListener = mMenuListener != null && mItems instanceof BottomBarTab[];
-        final boolean notifyRegularListener = mListener != null;
+        updateSelectedTab(newPosition, true);
+    }
+
+    private void updateSelectedTab(int newPosition, boolean notify) {
+        final boolean notifyMenuListener = notify && mMenuListener != null && mItems instanceof BottomBarTab[];
+        final boolean notifyRegularListener = notify && mListener != null;
 
         if (newPosition != mCurrentTabPosition) {
             handleBadgeVisibility(mCurrentTabPosition, newPosition);
@@ -1627,5 +1643,13 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
                 }
             });
         }
+    }
+
+    public boolean isActLikeTablet() {
+        return mIsActLikeTablet;
+    }
+
+    public void setActLikeTablet(boolean mIsActLikeTablet) {
+        this.mIsActLikeTablet = mIsActLikeTablet;
     }
 }
