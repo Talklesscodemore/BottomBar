@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.annotation.MenuRes;
+import android.support.annotation.Nullable;
 import android.support.annotation.StyleRes;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.content.ContextCompat;
@@ -29,6 +30,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,7 +54,7 @@ import java.util.HashMap;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-public class BottomBar extends FrameLayout implements View.OnClickListener, View.OnLongClickListener {
+public class BottomBar extends RelativeLayout implements View.OnClickListener, View.OnLongClickListener {
     private static final long ANIMATION_DURATION = 150;
 
     private static final String STATE_CURRENT_SELECTED_TAB = "STATE_CURRENT_SELECTED_TAB";
@@ -85,8 +87,10 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     private int mWhiteColor;
 
     private int mScreenWidth;
-    private int mTwoDp;
     private int mTenDp;
+    private int mSixDp;
+    private int mSixteenDp;
+    private int mEightDp;
     private int mMaxFixedItemWidth;
     private int mMaxInActiveShiftingItemWidth;
     private int mInActiveShiftingItemWidth;
@@ -130,7 +134,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     /**
      * Bind the BottomBar to your Activity, and inflate your layout here.
      * <p/>
-     * Remember to also call {@link #onRestoreInstanceState(Bundle)} inside
+     * Remember to also call {@link #onSaveInstanceState(Bundle)} inside
      * of your {@link Activity#onSaveInstanceState(Bundle)} to restore the state.
      *
      * @param activity           an Activity to attach to.
@@ -297,9 +301,10 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     }
 
     /**
-     * Set tabs for this BottomBar. When setting more than 3 items,
-     * only the icons will show by default, but the selected item
-     * will have the text visible.
+     * Set items for this BottomBar.
+     *
+     * When setting more than 3 items, only the icons will show by
+     * default, but the selected item will have the text visible.
      *
      * @param bottomBarTabs an array of {@link BottomBarTab} objects.
      */
@@ -308,9 +313,23 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         mItems = bottomBarTabs;
         updateItems(mItems);
     }
+    /**
+     * Set items for this BottomBar from an XML menu resource file.
+     *
+     * When setting more than 3 items, only the icons will show by
+     * default, but the selected item will have the text visible.
+     *
+     * @param menuRes  the menu resource to inflate items from.
+     */
+    public void setItems(@MenuRes int menuRes) {
+        clearItems();
+        mItems = MiscUtils.inflateMenuFromResource((Activity) getContext(), menuRes);
+        updateItems(mItems);
+    }
 
     /**
-     * Deprecated. Use {@link #setItemsFromMenu(int, OnMenuTabClickListener)} instead.
+     * Deprecated. Use {@link #setItems(int)} and
+     * {@link #setOnMenuTabClickListener(OnMenuTabClickListener)}instead.
      */
     @Deprecated
     public void setItemsFromMenu(@MenuRes int menuRes, OnMenuTabSelectedListener listener) {
@@ -321,11 +340,10 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     }
 
     /**
-     * Set items from an XML menu resource file.
-     *
-     * @param menuRes  the menu resource to inflate items from.
-     * @param listener listener for tab change events.
+     * Deprecated. Use {@link #setItems(int)} and
+     * {@link #setOnMenuTabClickListener(OnMenuTabClickListener)}instead.
      */
+    @Deprecated
     public void setItemsFromMenu(@MenuRes int menuRes, OnMenuTabClickListener listener) {
         clearItems();
         mItems = MiscUtils.inflateMenuFromResource((Activity) getContext(), menuRes);
@@ -349,13 +367,34 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
     /**
      * Set a listener that gets fired when the selected tab changes.
      *
+     * Note: If listener is set after items are added to the BottomBar, onTabSelected
+     * will be immediately called for the currently selected tab
+     *
      * @param listener a listener for monitoring changes in tab selection.
      */
-    public void setOnTabClickListener(OnTabClickListener listener) {
+    public void setOnTabClickListener(@Nullable OnTabClickListener listener) {
         mListener = listener;
 
-        if (mItems != null && mItems.length > 0) {
+        if (mListener != null && mItems != null && mItems.length > 0) {
             listener.onTabSelected(mCurrentTabPosition);
+        }
+    }
+
+    /**
+     * Set a listener that gets fired when the selected tab changes, when the
+     * tabs are created from an XML menu resource file.
+     *
+     * Note: If listener is set after items are added to the BottomBar, onMenuTabSelected
+     * will be immediately called for the currently selected tab
+     *
+     * @param listener a listener for monitoring changes in tab selection.
+     */
+    public void setOnMenuTabClickListener(@Nullable OnMenuTabClickListener listener) {
+        mMenuListener = listener;
+
+        if (mMenuListener != null && mItems != null && mItems.length > 0
+                && mItems instanceof BottomBarTab[]) {
+            listener.onMenuTabSelected(((BottomBarTab) mItems[mCurrentTabPosition]).id);
         }
     }
 
@@ -380,7 +419,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         selectTab(newTab, animate);
 
         updateSelectedTab(position);
-        shiftingMagic(oldTab, newTab, false);
+        shiftingMagic(oldTab, newTab, animate);
     }
 
     /**
@@ -774,6 +813,12 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
      * is ignored.
      */
     public void noResizeGoodness() {
+        if (mItems != null) {
+            throw new UnsupportedOperationException("This BottomBar already has items! " +
+                    "You must call noResizeGoodness() before setting the items, preferably " +
+                    "right after attaching it to your layout.");
+        }
+
         mIgnoreShiftingResize = true;
     }
 
@@ -874,8 +919,10 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         mInActiveColor = ContextCompat.getColor(getContext(), R.color.bb_inActiveBottomBarItemColor);
 
         mScreenWidth = MiscUtils.getScreenWidth(mContext);
-        mTwoDp = MiscUtils.dpToPixel(mContext, 2);
         mTenDp = MiscUtils.dpToPixel(mContext, 10);
+        mSixteenDp = MiscUtils.dpToPixel(mContext, 16);
+        mSixDp = MiscUtils.dpToPixel(mContext, 6);
+        mEightDp = MiscUtils.dpToPixel(mContext, 8);
         mMaxFixedItemWidth = MiscUtils.dpToPixel(mContext, 168);
         mMaxInActiveShiftingItemWidth = MiscUtils.dpToPixel(mContext, 96);
     }
@@ -884,9 +931,9 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         mIsTabletMode = !mIgnoreTabletLayout &&
                 mContext.getResources().getBoolean(R.bool.bb_bottom_bar_is_tablet_mode);
         ViewCompat.setElevation(this, MiscUtils.dpToPixel(mContext, 8));
-        View rootView = View.inflate(mContext, mIsTabletMode ?
+        View rootView = inflate(mContext, mIsTabletMode ?
                         R.layout.bb_bottom_bar_item_container_tablet : R.layout.bb_bottom_bar_item_container,
-                null);
+                this);
         mTabletRightBorder = rootView.findViewById(R.id.bb_tablet_right_border);
 
         mUserContentContainer = (ViewGroup) rootView.findViewById(R.id.bb_user_content_container);
@@ -938,8 +985,6 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
                 }
             });
         }
-
-        addView(rootView);
     }
 
     /**
@@ -1137,7 +1182,10 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         if (mBadgeMap.containsKey(newPosition)) {
             BottomBarBadge newBadge = (BottomBarBadge) mOuterContainer
                     .findViewWithTag(mBadgeMap.get(newPosition));
-            newBadge.hide();
+
+            if (newBadge.getAutoHideOnSelection()) {
+                newBadge.hide();
+            }
         }
     }
 
@@ -1248,20 +1296,18 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
             mInActiveShiftingItemWidth = (int) (proposedItemWidth * 0.9);
             mActiveShiftingItemWidth = (int) (proposedItemWidth + (proposedItemWidth * (bottomBarItems.length * 0.1)));
 
+            int height = Math.round(mContext.getResources().getDimension(R.dimen.bb_height));
             for (View bottomBarView : viewsToAdd) {
                 LinearLayout.LayoutParams params;
 
                 if (mIsShiftingMode && !mIgnoreShiftingResize) {
                     if (TAG_BOTTOM_BAR_VIEW_ACTIVE.equals(bottomBarView.getTag())) {
-                        params = new LinearLayout.LayoutParams(mActiveShiftingItemWidth,
-                                LinearLayout.LayoutParams.WRAP_CONTENT);
+                        params = new LinearLayout.LayoutParams(mActiveShiftingItemWidth, height);
                     } else {
-                        params = new LinearLayout.LayoutParams(mInActiveShiftingItemWidth,
-                                LinearLayout.LayoutParams.WRAP_CONTENT);
+                        params = new LinearLayout.LayoutParams(mInActiveShiftingItemWidth, height);
                     }
                 } else {
-                    params = new LinearLayout.LayoutParams(proposedItemWidth,
-                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    params = new LinearLayout.LayoutParams(proposedItemWidth, height);
                 }
 
                 bottomBarView.setLayoutParams(params);
@@ -1305,6 +1351,46 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         }
     }
 
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        if (changed) {
+            updateTitleBottomPadding();
+        }
+    }
+
+    /**
+     * Material Design specify that there should be a 10dp padding under the text, it seems that
+     * it means 10dp starting from the text baseline.
+     * This method takes care of calculating the amount of padding that needs to be added to the
+     * Title TextView in order to comply with the Material Design specifications.
+     */
+    private void updateTitleBottomPadding() {
+        if (mItemContainer == null) {
+            return;
+        }
+
+        int childCount = mItemContainer.getChildCount();
+
+        for (int i = 0; i < childCount; i++) {
+            View tab = mItemContainer.getChildAt(i);
+            TextView title = (TextView) tab.findViewById(R.id.bb_bottom_bar_title);
+            if (title == null) {
+                continue;
+            }
+            int baseline = title.getBaseline();
+            // Height already includes any possible top/bottom padding
+            int height = title.getHeight();
+            int paddingInsideTitle = height - baseline;
+            int missingPadding = mTenDp - paddingInsideTitle;
+            if (missingPadding > 0) {
+                // Only update the padding if really needed
+                title.setPadding(title.getPaddingLeft(), title.getPaddingTop(),
+                    title.getPaddingRight(), missingPadding + title.getPaddingBottom());
+            }
+        }
+    }
+
     private void selectTab(View tab, boolean animate) {
         tab.setTag(TAG_BOTTOM_BAR_VIEW_ACTIVE);
         ImageView icon = (ImageView) tab.findViewById(R.id.bb_bottom_bar_icon);
@@ -1334,8 +1420,6 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
             return;
         }
 
-        int translationY = mIsShiftingMode ? mTenDp : mTwoDp;
-
         if (animate) {
             ViewPropertyAnimatorCompat titleAnimator = ViewCompat.animate(title)
                     .setDuration(ANIMATION_DURATION)
@@ -1348,10 +1432,9 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
 
             titleAnimator.start();
 
-            ViewCompat.animate(tab)
-                    .setDuration(ANIMATION_DURATION)
-                    .translationY(-translationY)
-                    .start();
+            // We only want to animate the icon to avoid moving the title
+            // Shifting or fixed the padding above icon is always 6dp
+            MiscUtils.resizePaddingTop(icon, icon.getPaddingTop(), mSixDp, ANIMATION_DURATION);
 
             if (mIsShiftingMode) {
                 ViewCompat.animate(icon)
@@ -1364,7 +1447,8 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         } else {
             ViewCompat.setScaleX(title, 1);
             ViewCompat.setScaleY(title, 1);
-            ViewCompat.setTranslationY(tab, -translationY);
+            icon.setPadding(icon.getPaddingLeft(), mSixDp, icon.getPaddingRight(),
+                icon.getPaddingBottom());
 
             if (mIsShiftingMode) {
                 ViewCompat.setAlpha(icon, 1.0f);
@@ -1401,6 +1485,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         }
 
         float scale = mIsShiftingMode ? 0 : 0.86f;
+        int iconPaddingTop = mIsShiftingMode ? mSixteenDp : mEightDp;
 
         if (animate) {
             ViewPropertyAnimatorCompat titleAnimator = ViewCompat.animate(title)
@@ -1414,10 +1499,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
 
             titleAnimator.start();
 
-            ViewCompat.animate(tab)
-                    .setDuration(ANIMATION_DURATION)
-                    .translationY(0)
-                    .start();
+            MiscUtils.resizePaddingTop(icon, icon.getPaddingTop(), iconPaddingTop, ANIMATION_DURATION);
 
             if (mIsShiftingMode) {
                 ViewCompat.animate(icon)
@@ -1428,7 +1510,8 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         } else {
             ViewCompat.setScaleX(title, scale);
             ViewCompat.setScaleY(title, scale);
-            ViewCompat.setTranslationY(tab, 0);
+            icon.setPadding(icon.getPaddingLeft(), iconPaddingTop, icon.getPaddingRight(),
+                icon.getPaddingBottom());
 
             if (mIsShiftingMode) {
                 ViewCompat.setAlpha(icon, 0.6f);
@@ -1520,6 +1603,7 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
 
     private static void navBarMagic(Activity activity, final BottomBar bottomBar) {
         Resources res = activity.getResources();
+
         int softMenuIdentifier = res
                 .getIdentifier("config_showNavigationBar", "bool", "android");
         int navBarIdentifier = res.getIdentifier("navigation_bar_height",
@@ -1531,13 +1615,17 @@ public class BottomBar extends FrameLayout implements View.OnClickListener, View
         }
 
         if (!bottomBar.drawBehindNavBar()
-                || navBarHeight == 0
-                || (!(softMenuIdentifier > 0 && res.getBoolean(softMenuIdentifier)))) {
+                || navBarHeight == 0) {
             return;
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH
                 && ViewConfiguration.get(activity).hasPermanentMenuKey()) {
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 &&
+                (!(softMenuIdentifier > 0 && res.getBoolean(softMenuIdentifier)))) {
             return;
         }
 

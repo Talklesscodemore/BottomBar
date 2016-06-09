@@ -11,8 +11,6 @@
 
 A custom view component that mimics the new [Material Design Bottom Navigation pattern](https://www.google.com/design/spec/components/bottom-navigation.html).
 
-**(currently under active development, expect to see new releases almost daily)**
-
 ## Does it work on my Grandpa Gary's HTC Dream?
 
 Nope. The current minSDK version is **API level 11 (Honeycomb).**
@@ -22,7 +20,7 @@ Your uncle Bob's Galaxy S Mini will probably be supported in the future though.
 ## Gimme that Gradle sweetness, pls?
 
 ```groovy
-compile 'com.roughike:bottom-bar:1.3.3'
+compile 'com.roughike:bottom-bar:1.3.7'
 ```
 
 **Maven:**
@@ -30,7 +28,7 @@ compile 'com.roughike:bottom-bar:1.3.3'
 <dependency>
   <groupId>com.roughike</groupId>
   <artifactId>bottom-bar</artifactId>
-  <version>1.3.3</version>
+  <version>1.3.7</version>
   <type>pom</type>
 </dependency>
 ```
@@ -38,6 +36,12 @@ compile 'com.roughike:bottom-bar:1.3.3'
 ## How?
 
 You can add items by specifying an array of items or **by xml menu resources**.
+
+#### Creating the icons
+
+The icons must be fully opaque, solid color, 24dp and **with no padding**. For example, [with Android Asset Studio Generic Icon generator](https://romannurik.github.io/AndroidAssetStudio/icons-generic.html), select "TRIM" and make sure the padding is 0dp. Here's what your icons should look like:
+
+![Sample icons](https://raw.githubusercontent.com/roughike/BottomBar/master/icons-howto.png)
 
 #### Adding items from menu resource
 
@@ -65,7 +69,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mBottomBar = BottomBar.attach(this, savedInstanceState);
-        mBottomBar.setItemsFromMenu(R.menu.bottombar_menu, new OnMenuTabClickListener() {
+        mBottomBar.setItems(R.menu.bottombar_menu);
+        mBottomBar.setOnMenuTabClickListener(new OnMenuTabClickListener() {
             @Override
             public void onMenuTabSelected(@IdRes int menuItemId) {
                 if (menuItemId == R.id.bottomBarItemOne) {
@@ -121,6 +126,9 @@ unreadMessages.setAnimationDuration(200);
 
 // If you want the badge be shown always after unselecting the tab that contains it.
 unreadMessages.setAutoShowAfterUnSelection(true);
+
+// If you don't want this badge to be hidden after selecting the tab contains it.
+unreadMessages.setAutoShowAfterUnSelection(false);
 ```
 
 ## Customization
