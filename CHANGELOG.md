@@ -1,8 +1,33 @@
 ## Changelog
 
-(or: why are you updating this all the time?)
+(or: y u no add shiny new things?!)
 
-### Newest version: 1.3.3
+### Newest version: 1.3.7
+
+* Merged a [PR that fixes elliptical Badges](https://github.com/roughike/BottomBar/pull/275).
+* Fixed issues [#276](https://github.com/roughike/BottomBar/issues/276) and [#277](https://github.com/roughike/BottomBar/issues/277)
+
+### 1.3.6
+
+* Fixed a bug that would cause the navigation bar to not be transparent.
+* Flattened View hierarchy.
+* Throwing a nice little Exception if someone tries to call ```noResizeGoodness()``` improperly, instead of just failing silently.
+
+### 1.3.5
+
+* [Merged](https://github.com/roughike/BottomBar/pull/260) [some](https://github.com/roughike/BottomBar/pull/268) [pull](https://github.com/roughike/BottomBar/pull/269) [requests.](https://github.com/roughike/BottomBar/pull/271)
+* Thanks to @henhal, now the unselection bug when using badges is fixed.
+* Deprecated the ```setItemsFromMenu(@MenuRes int resId, OnMenuTabClickListener listener)``` method in favor of two separate methods: ```mBottomBar.setItems(@MenuRes int resId)``` and ```mBottomBar.setOnMenuTabClickListener(OnMenuTabClickListener listener)```. Not only because deprecating stuff is so fun (it is), but because this actually makes more sense than the old approach. The old approach still works.
+
+### 1.3.4
+
+* Now the BottomBar is 56dp tall, as it should be! Make sure your icons are 24dp and **trimmed**, meaning that the whole png size musn't be more than 24dp. So **don't use padding** around the icon.
+* Fixed a minor bug when programmatically selecting a tab.
+* Added a ```setAutoHideOnSelection(boolean autoHideOnSelection)``` method for the BottomBarBadge to control whether it is automatically hidden after the tab that contains it is selected or not. 
+* Titles are now forced to be single line, make sure your title texts are short enough, or else they'll get truncated with a "..." !
+* Updated some dependencies and Gradle.
+
+### 1.3.3
 
 * The show / hide methods now behave nicely with CoordinatorLayout.
 * Added alpha animation for the tab titles when using the shifting tabs.

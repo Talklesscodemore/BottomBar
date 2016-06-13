@@ -42,7 +42,7 @@ import android.widget.TextView;
 class MiscUtils {
     protected static int getColor(Context context, int color) {
         TypedValue tv = new TypedValue();
-        context.getTheme().resolveAttribute(R.attr.colorPrimary, tv, true);
+        context.getTheme().resolveAttribute(color, tv, true);
         return tv.data;
     }
 
@@ -56,7 +56,12 @@ class MiscUtils {
     protected static int dpToPixel(Context context, float dp) {
         Resources resources = context.getResources();
         DisplayMetrics metrics = resources.getDisplayMetrics();
-        return (int) (dp * (metrics.densityDpi / 160f));
+
+        try {
+            return (int) (dp * (metrics.densityDpi / 160f));
+        } catch (NoSuchFieldError ignored) {
+            return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, metrics);
+        }
     }
 
     /**
@@ -118,6 +123,19 @@ class MiscUtils {
             }
         });
         animator.start();
+    }
+
+    protected static void resizePaddingTop(final View icon, int start, int end, long duration) {
+        ValueAnimator paddingAnimator = ValueAnimator.ofInt(start, end);
+        paddingAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                icon.setPadding(icon.getPaddingLeft(), (Integer) animation.getAnimatedValue(),
+                    icon.getPaddingRight(), icon.getPaddingBottom());
+            }
+        });
+        paddingAnimator.setDuration(duration);
+        paddingAnimator.start();
     }
 
     /**
