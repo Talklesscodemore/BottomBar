@@ -9,6 +9,7 @@
 
     <ImageView
         android:id="@+id/bb_bottom_bar_icon"
-        style="@style/BB_BottomBarItem_Tablet" />
+        style="@style/BB_BottomBarItem_Tablet"
+        android:contentDescription="@null"/>
 
 </FrameLayout>

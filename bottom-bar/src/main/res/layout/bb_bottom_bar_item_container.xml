@@ -15,7 +15,8 @@
             android:layout_width="match_parent"
             android:layout_height="4dp"
             android:layout_gravity="bottom"
-            android:src="@drawable/bb_bottom_bar_top_shadow"/>
+            android:src="@drawable/bb_bottom_bar_top_shadow"
+            android:contentDescription="@null"/>
 
     </FrameLayout>
 

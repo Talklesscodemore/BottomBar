@@ -6,7 +6,8 @@
         android:id="@+id/bb_bottom_bar_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:alpha="0.6"/>
+        android:alpha="0.6"
+        android:contentDescription="@null"/>
 
     <TextView
         android:id="@+id/bb_bottom_bar_title"
